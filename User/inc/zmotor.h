@@ -13,7 +13,7 @@
 #include "stdbool.h"
 #include "mathFunc.h"
 #include "stdint.h"
-
+#include "cancommand.h"
 //=============================================
 
 //=============================================
@@ -107,8 +107,8 @@ int motor_init(MotorPtr motorp);
 int Motor_Set_Mode(MotorPtr motorp, MotorMode mode); // 命令封装
 int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value);
 int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd);
+int Motor_Data_Read(MotorPtr motorp);
 /*-----------------------工具函数-------------------------*/
-
 static inline bool isMotor_On_Setposition(MotorPtr motorp)
 {
     if (ABS(motorp->valueSetNow.angle - motorp->valueReal.angle) > POSITION_TOLERANCE_ANGLE)
@@ -123,6 +123,9 @@ static inline bool isMotor_On_Setspeed(MotorPtr motorp)
     else
         return true;
 }
+/*-----------------集和封装函数--------------------------------*/
+void Motor_Func(MotorPtr motorp);
+
 //=============================================
 
 #endif // !ZMOTOR_H

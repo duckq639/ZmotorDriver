@@ -9,7 +9,6 @@
 #include "stdbool.h"
 #include "string.h"
 #include "can.h"
-#include "zmotor.h"
 /*============================ 数据结构区 ============================*/
 typedef struct
 {
@@ -43,17 +42,4 @@ bool isQueue_Full(CANQueue *queue);
 int Queue_Pop(CANQueue *queue, CANFrame *frame); // 队列核心
 int Queue_Push(CANQueue *queue, CANFrame *frame);
 
-int CAN_Write_Cmd(MotorTxCMD cmd, float data, uint32_t motorID, uint32_t datalength);
-int CAN_Send_Cmd();
-int CAN_Recieve_Cmd(CAN_RxHeaderTypeDef *hdr, uint8_t *data); // 命令中间层和底层
-int CAN_Read_Cmd(MotorPtr motorp);
-
-CAN_TxHeaderTypeDef CAN_Frame_ToTxHeader(CANFrame *frame); // 转换工具
-CANFrame CAN_TxHeader_ToFrame(CAN_RxHeaderTypeDef *hdr);
-
-int Motor_Set_Mode(MotorPtr motorp, MotorMode mode); // 命令封装
-int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value);
-int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd);
-
-void Motor_Func(MotorPtr motorp); // 集成封装
-#endif                            // !CANQUEUE_H
+#endif // !CANQUEUE_H

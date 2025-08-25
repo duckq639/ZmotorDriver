@@ -3,6 +3,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "zmotor.h"
+#include "cancommand.h"
 #include "canqueue.h"
 /*-------------------------类型定义声明----------------------------*/
 extern Motor zmotor;
@@ -34,7 +35,7 @@ void Read_Command(void *argument)
 
     for (;;)
     {
-        CAN_Read_Cmd(zmotorp);
+        Motor_Data_Read(zmotorp);
         osDelay(1);
     }
 }
