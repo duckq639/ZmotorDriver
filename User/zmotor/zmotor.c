@@ -76,9 +76,12 @@ int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value)
     switch (cancmd.command)
     {
     case SpeedSet:
+        motorp->valueSetLast.speed = motorp->valueSetNow.speed;
         cancmd.data = value / 60.f * motorp->param.ratio;
         break;
     case PositionSet:
+        motorp->valueSetLast.angle = motorp->valueSetNow.angle;
+        motorp->valueSetLast.round = motorp->valueSetNow.round;
         cancmd.data = value / 360.f * motorp->param.ratio; // 电机运行参数设置
         break;
     case PositionReal:
@@ -94,7 +97,7 @@ int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd)
 {
     CAN_CMD cancmd = {0};
     cancmd.motorID = motorp->param.ID;
-    cancmd.datalenth = CAN_CMD_DATASIZE;
+    cancmd.datalenth = ZMOTOR_CMD_DATASIZE;
     cancmd.command = cmd - 0x1;
     return CAN_Write_Cmd(&cancmd); // 请求电机参数,请求参数需要将DLC置为1(通信协议需要注意DLC设置)
 }
@@ -151,9 +154,16 @@ int Motor_Data_Read(MotorPtr motorp)
         return 1;
     }
 }
+void Motor_Err_Handler(MotorPtr motorp)
+{
+}
 /*--------------------------------集成封装函数------------------------------------*/
 void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
 {
+    if (motorp->motorErr)
+    {
+        Motor_Err_Handler(motorp);
+    }
     if (motorp->enable == 0)
     {
         if (motorp->modeset != Disable)
@@ -172,14 +182,16 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
         switch (motorp->moderead)
         {
         case Disable:
-            //            Motor_Set_Mode(motorp, motorp->moderead);
+            // Motor_Set_Mode(motorp, motorp->moderead);
             motorp->enable = 0;
             break;
         case Position:
             if (!isMotor_On_Setposition(motorp) && ABS(motorp->valueSetNow.angle - motorp->valueSetLast.angle) > POSITION_TOLERANCE_ANGLE) // 电机行止逻辑注意
             {
                 Motor_Set_Value(motorp, PositionSet, motorp->valueSetNow.angle);
-                motorp->valueSetLast.angle = motorp->valueSetNow.angle;
+            }
+            if (isMotor_On_Setposition(motorp) && !motorp->status.isZeroed)
+            {
             }
             break;
         case Speed:
@@ -188,12 +200,6 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
                 Motor_Set_Value(motorp, SpeedSet, motorp->valueSetNow.speed);
             }
             break;
-        // case PositionReal:
-        //     if (ABS(motorp->valueSetNow.angle - motorp->valueReal.angle) < POSITION_TOLERANCE_ANGLE)
-        //     {
-        //         Motor_Set_Value(PositionReal, motorp->valueReal.angle, motorp->param.ID);
-        //         Motor_Set_Value(PositionSet, motorp->valueReal.angle, motorp->param.ID);
-        //     }
         default:
             motorp->motorErr = UnkownCommand;
             break;

@@ -8,17 +8,28 @@ CANQueue CAN_RxQueue;
 int CAN_Frame_Init(CANFrame *frame)
 {
     frame->StdId = 0x1;
+    frame->ExtId = 0x0;
     frame->IDE = 0x0;
     frame->RTR = 0x0;
-    frame->DLC = CAN_STD_DATASIZE;
+    frame->DLC = ZMOTOR_STD_DATASIZE;
     memset(frame->Data, 0, sizeof(frame->Data));
     return 0;
 }
 
-CANFrame CAN_Creat_Frame()
+CANFrame CAN_Creat_Frame(uint32_t ID, uint8_t IDE, uint8_t DLC)
 {
     CANFrame tempframe;
     CAN_Frame_Init(&tempframe); // can_frame需要频繁创建,所以封装了一个创建函数
+    tempframe.IDE = IDE;
+    if (IDE)
+    {
+        tempframe.ExtId = ID;
+    }
+    else
+    {
+        tempframe.StdId = ID;
+    }
+    tempframe.DLC = DLC;
     return tempframe;
 }
 int CAN_Queue_Init(CANQueue *queue)

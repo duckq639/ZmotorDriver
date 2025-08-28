@@ -4,14 +4,14 @@
 
 /*============================ 头文件包含区 ============================*/
 #include "canqueue.h"
-
+#include "can.h"
 /*============================ 数据结构区 ============================*/
 typedef struct
 {
     uint8_t command;
     float data;
     uint32_t motorID;
-    uint32_t datalenth;
+    uint8_t datalenth;
 } CAN_CMD;
 /*============================ 函数声明区 ============================*/
 int CAN_Cmd_Init(CAN_CMD *cancmd);

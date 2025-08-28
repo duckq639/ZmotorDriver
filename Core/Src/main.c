@@ -193,8 +193,20 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+  static int ticktime = 0;
   /* USER CODE BEGIN Callback 0 */
-
+  if (htim->Instance == TIM3)
+  {
+    if (ticktime == 10)
+    {
+      Motor_Func(zmotorp);
+      // LED_Pop();
+      ticktime = 0;
+    }
+    ticktime++;
+    CAN_Send_Cmd();
+    osDelay(10);
+  }
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM8)
   {

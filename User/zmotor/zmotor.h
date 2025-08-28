@@ -69,6 +69,15 @@ typedef enum //  电机模式，用于指定电机的操作模式
     Speed,
     Position,
     Test,
+    RVCalibration,
+    EncoderLineCalibration,
+    EncodeOffsetCalibration,
+    VKCalibration,
+    SaveSetting,
+    EraseSetting,
+    ClearErr,
+    Brake,
+    PVT_Mode,
     /*后面的看不懂先写到这里*/
 } MotorMode;
 
@@ -98,6 +107,10 @@ typedef struct
 } Motor, *MotorPtr;
 //=============================================
 
+//               类声明
+//=============================================
+extern Motor zmotor;
+extern MotorPtr zmotorp;
 //=============================================
 //               函数声明
 /*-----------------初始化函数--------------------------------*/
@@ -108,6 +121,7 @@ int Motor_Set_Mode(MotorPtr motorp, MotorMode mode); // 命令封装
 int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value);
 int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd);
 int Motor_Data_Read(MotorPtr motorp);
+void Motor_Err_Handler(MotorPtr motorp);
 /*-----------------------工具函数-------------------------*/
 static inline bool isMotor_On_Setposition(MotorPtr motorp)
 {
