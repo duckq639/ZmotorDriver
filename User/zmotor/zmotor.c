@@ -154,6 +154,12 @@ int Motor_Data_Read(MotorPtr motorp)
         return 1;
     }
 }
+int Motor_Save_Position(MotorPtr motorp)
+{
+    CAN_CMD cancmd = {0};
+    cancmd.motorID = motorp;
+    CAN_Write_Cmd(&cancmd);
+}
 void Motor_Err_Handler(MotorPtr motorp)
 {
 }
@@ -163,6 +169,7 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
     if (motorp->motorErr)
     {
         Motor_Err_Handler(motorp);
+        return;
     }
     if (motorp->enable == 0)
     {
@@ -190,8 +197,21 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
             {
                 Motor_Set_Value(motorp, PositionSet, motorp->valueSetNow.angle);
             }
-            if (isMotor_On_Setposition(motorp) && !motorp->status.isZeroed)
+
+            else if (motorp->status.isSetzero)
             {
+                if (motorp->valueSetNow.angle == 0)
+                {
+                    motorp->status.isSetzero = false;
+                    break;
+                }
+                int Motor_Save_Position(MotorPtr motorp);
+            }
+            else if (motorp->status.isZeroed)
+            {
+                Motor_Set_Value(motorp, PositionSet, HOME_POSITION);
+                if (isMotor_On_Setposition(motorp))
+                    motorp->status.isZeroed = false;
             }
             break;
         case Speed:

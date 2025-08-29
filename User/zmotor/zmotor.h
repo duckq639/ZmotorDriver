@@ -6,6 +6,7 @@
 #define POSITION_TOLERANCE_ANGLE 0.5f
 #define SPEED_TOLERANCE_RPM 20.f
 #define CURRENT_LIMIT 0.f
+#define HOME_POSITION 0 // 单位"度"
 //=============================================
 
 //=============================================
@@ -121,6 +122,7 @@ int Motor_Set_Mode(MotorPtr motorp, MotorMode mode); // 命令封装
 int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value);
 int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd);
 int Motor_Data_Read(MotorPtr motorp);
+int Motor_Save_Position(MotorPtr motorp);
 void Motor_Err_Handler(MotorPtr motorp);
 /*-----------------------工具函数-------------------------*/
 static inline bool isMotor_On_Setposition(MotorPtr motorp)

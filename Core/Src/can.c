@@ -64,7 +64,6 @@ void MX_CAN1_Init(void)
   {
     Error_Handler();
   }
-	
   /* USER CODE BEGIN CAN1_Init 2 */
 	if(HAL_CAN_ConfigFilter(&hcan1,&filter) != HAL_OK)
 		Error_Handler();
