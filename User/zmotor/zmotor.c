@@ -7,15 +7,20 @@
 /*=====================================
  *             全局变量区
  *=====================================*/
-
+Motor zmotor[MOTOR_NUMBER];
+MotorPtr zmotorp = &zmotor;
+uint8_t Motor_ID_List[MAX_MOTOR_ID + 1] = {0};
 /*=====================================
  *             函数实现区
 \*=====================================*/
 
 /*-----------------初始化函数--------------------------------*/
-int motor_init(MotorPtr motorp)
-
+int motor_init(MotorPtr motorp, uint32_t id)
 {
+    if (id == 0 || id > MAX_MOTOR_ID)
+    {
+        return 1;
+    }
     motorp->enable = 0;
     motorp->begin = 1;
     motorp->brake = 0;
@@ -25,7 +30,7 @@ int motor_init(MotorPtr motorp)
     motorp->param.reductionRatio = 1.0f;
     motorp->param.gearRatio = 1.0f;
     motorp->param.currentLimit = CURRENT_LIMIT;
-    motorp->param.ID = 0x1;
+    motorp->param.ID = id;
 
     // 初始化电机运行参数
 
@@ -51,6 +56,9 @@ int motor_init(MotorPtr motorp)
     // 计算总减速比
     motorp->param.ratio = motorp->param.reductionRatio * motorp->param.gearRatio;
 
+    // 存入ID数据(ID命名应在1~8,用于对齐电机数组ID和电机实际ID,list的0位弃用)
+    uint8_t array_idx = (uint8_t)(motorp - zmotor); // 指针减首地址 = 下标
+    Motor_ID_List[id] = array_idx;
     // 发送CAN报文(丐版)
     Motor_Set_Mode(motorp, motorp->modeset);
     Motor_Set_Value(motorp, PositionReal, 0.f);
@@ -101,57 +109,62 @@ int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd)
     cancmd.command = cmd - 0x1;
     return CAN_Write_Cmd(&cancmd); // 请求电机参数,请求参数需要将DLC置为1(通信协议需要注意DLC设置)
 }
-int Motor_Data_Read(MotorPtr motorp)
+int Motor_Read_Data(MotorPtr motorp, CAN_CMD *cancmd)
 {
     float temp = 0;
-    CAN_CMD cancmd = {0};
-    CAN_Read_Cmd(&CAN_RxQueue, &cancmd);
-    if (cancmd.motorID == motorp->param.ID)
+    switch (cancmd->command + 0x1)
     {
-        switch (cancmd.command + 0x1)
-        {
-        case Mode:
-            memcpy(&temp, &cancmd.data, sizeof(float));
-            motorp->moderead = (uint8_t)temp;
-            break;
-        case Error:
-            memcpy(&temp, &cancmd.data, sizeof(float));
-            motorp->motorErr = (uint8_t)temp;
-            break;
-        case PositionSet:
-            motorp->valueSetLast.angle = motorp->valueSetNow.angle;
-            memcpy(&motorp->valueSetNow.round, &cancmd.data, sizeof(float));
-            motorp->valueSetNow.angle = motorp->valueSetNow.round * 360.f / motorp->param.ratio;
-            break;
-        case PositionReal:
-            memcpy(&motorp->valueReal.round, &cancmd.data, sizeof(float));
-            motorp->valueReal.angle = motorp->valueReal.round * 360.f / motorp->param.ratio;
-            break;
-        case CurrentSet:
-            motorp->valueSetLast.current = motorp->valueSetNow.current;
-            memcpy(&motorp->valueSetNow.current, &cancmd.data, sizeof(float));
-            break;
-        case CurrentReal:
-            memcpy(&motorp->valueReal.current, &cancmd.data, sizeof(float));
-        case SpeedSet:
-            motorp->valueSetLast.speed = motorp->valueSetNow.speed;
-            memcpy(&motorp->valueSetNow.speed, &cancmd.data, sizeof(float));
-            motorp->valueSetNow.speed *= 60.f;
-            break;
-        case SpeedReal:
-            memcpy(&motorp->valueReal.speed, &cancmd.data, sizeof(float));
-            motorp->valueReal.speed *= 60.f;
-            break;
-
-        default:
-            motorp->motorErr = UnkownCommand;
-            break;
-        }
-        return 0;
+    case Mode:
+        memcpy(&temp, &cancmd->data, sizeof(float));
+        motorp->moderead = (uint8_t)temp;
+        break;
+    case Error:
+        memcpy(&temp, &cancmd->data, sizeof(float));
+        motorp->motorErr = (uint8_t)temp;
+        break;
+    case PositionSet:
+        motorp->valueSetLast.angle = motorp->valueSetNow.angle;
+        memcpy(&motorp->valueSetNow.round, &cancmd->data, sizeof(float));
+        motorp->valueSetNow.angle = motorp->valueSetNow.round * 360.f / motorp->param.ratio;
+        break;
+    case PositionReal:
+        memcpy(&motorp->valueReal.round, &cancmd->data, sizeof(float));
+        motorp->valueReal.angle = motorp->valueReal.round * 360.f / motorp->param.ratio;
+        break;
+    case CurrentSet:
+        motorp->valueSetLast.current = motorp->valueSetNow.current;
+        memcpy(&motorp->valueSetNow.current, &cancmd->data, sizeof(float));
+        break;
+    case CurrentReal:
+        memcpy(&motorp->valueReal.current, &cancmd->data, sizeof(float));
+    case SpeedSet:
+        motorp->valueSetLast.speed = motorp->valueSetNow.speed;
+        memcpy(&motorp->valueSetNow.speed, &cancmd->data, sizeof(float));
+        motorp->valueSetNow.speed *= 60.f;
+        break;
+    case SpeedReal:
+        memcpy(&motorp->valueReal.speed, &cancmd->data, sizeof(float));
+        motorp->valueReal.speed *= 60.f;
+        break;
+    default:
+        motorp->motorErr = UnkownCommand;
+        break;
     }
-    else
+    return 0;
+}
+int Motor_Update()
+{
+    CAN_CMD cancmd = {0};
+    uint8_t *IDp = Motor_ID_List;
+    if (CAN_Read_Cmd(&CAN_RxQueue, &cancmd) != HAL_OK)
     {
         return 1;
+    }
+
+    else
+    {
+        Motor_Read_Data(&zmotor[Motor_ID_List[cancmd.motorID]], &cancmd);
+        return 0;
     }
 }
 int Motor_Save_Position(MotorPtr motorp)

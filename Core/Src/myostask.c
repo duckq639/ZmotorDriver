@@ -24,7 +24,7 @@ void Read_Command(void *argument)
 
     for (;;)
     {
-        Motor_Data_Read(zmotorp);
+        Motor_Update();
         osDelay(2);
     }
 }
