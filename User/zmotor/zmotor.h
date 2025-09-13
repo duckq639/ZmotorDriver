@@ -47,8 +47,9 @@ typedef struct
     volatile bool isZeroed;   // 寻零完成
     volatile bool isOvertime; // 是否超时
     volatile bool isStuck;    // 是否堵转
-    volatile bool isSetzero;  // 是否将当前位置置为0：
-} MotorStatus;                // 电机执行情况
+    volatile bool findZero;   // 是否将当前位置置为0：
+    volatile bool SavePositionFlag;
+} MotorStatus; // 电机执行情况
 /*------------------------枚举类------------------------------------*/
 
 typedef enum
@@ -112,6 +113,10 @@ typedef struct
 
 //               类声明
 //=============================================
+// 电机初始化时要求输入ID
+// 电机ID以结构体param中的ID为准
+// ID表中填写电机ID(如"Motor_ID_List[1]")即可对ID为1的电机操作
+// 代码太史了,目前电机操作的传入指针依然是电机结构体而不是电机ID
 extern Motor zmotor[MOTOR_NUMBER];
 extern MotorPtr zmotorp;
 extern uint8_t Motor_ID_List[MAX_MOTOR_ID + 1];
@@ -146,7 +151,7 @@ static inline bool isMotor_On_Setspeed(MotorPtr motorp)
 /*-----------------集和封装函数--------------------------------*/
 void Motor_Func(MotorPtr motorp);
 /*-----------------工具函数--------------------------------*/
-isID_Exist(uint8_t id);
+
 //=============================================
 
 #endif // !ZMOTOR_H

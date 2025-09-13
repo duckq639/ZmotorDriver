@@ -5,8 +5,6 @@
 #define ZMOTOR_CMD_DATASIZE 1 // 请求段DLC,只包含命令
 #define CAN_QUEUE_MAX_SIZE 15
 
-#define CAN_STD(id) (id)
-#define CAN_EXT(id) (id | 0x80000000u)
 /*============================ 头文件包含区 ============================*/
 #include "stdint.h"
 #include "stdbool.h"

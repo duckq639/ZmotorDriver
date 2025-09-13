@@ -8,7 +8,7 @@
  *             全局变量区
  *=====================================*/
 Motor zmotor[MOTOR_NUMBER];
-MotorPtr zmotorp = &zmotor;
+MotorPtr zmotorp = zmotor;
 uint8_t Motor_ID_List[MAX_MOTOR_ID + 1] = {0};
 /*=====================================
  *             函数实现区
@@ -47,7 +47,7 @@ int motor_init(MotorPtr motorp, uint32_t id)
     motorp->status.isZeroed = false;
     motorp->status.isOvertime = false;
     motorp->status.isStuck = false;
-    motorp->status.isSetzero = false;
+    motorp->status.findZero = false;
 
     // 初始化电机模式
     motorp->modeset = Disable;  // 初始化为禁用模式
@@ -163,15 +163,15 @@ int Motor_Update()
 
     else
     {
-        Motor_Read_Data(&zmotor[Motor_ID_List[cancmd.motorID]], &cancmd);
-        return 0;
+        return Motor_Read_Data(&zmotor[Motor_ID_List[cancmd.motorID]], &cancmd);
     }
 }
 int Motor_Save_Position(MotorPtr motorp)
 {
     CAN_CMD cancmd = {0};
-    cancmd.motorID = motorp;
+    cancmd.motorID = motorp->param.ID;
     CAN_Write_Cmd(&cancmd);
+    return 0;
 }
 void Motor_Err_Handler(MotorPtr motorp)
 {
@@ -211,20 +211,24 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
                 Motor_Set_Value(motorp, PositionSet, motorp->valueSetNow.angle);
             }
 
-            else if (motorp->status.isSetzero)
+            else if (motorp->status.SavePositionFlag)
             {
-                if (motorp->valueSetNow.angle == 0)
-                {
-                    motorp->status.isSetzero = false;
-                    break;
-                }
+                motorp->status.SavePositionFlag = 0;
                 int Motor_Save_Position(MotorPtr motorp);
             }
-            else if (motorp->status.isZeroed)
+            else if (motorp->status.findZero)
             {
                 Motor_Set_Value(motorp, PositionSet, HOME_POSITION);
                 if (isMotor_On_Setposition(motorp))
-                    motorp->status.isZeroed = false;
+                    motorp->status.findZero = false;
+            }
+            else if (motorp->status.isZeroed)
+            {
+                Motor_Set_Value(motorp, PositionReal, 0.f);
+                if (motorp->valueReal.angle < POSITION_TOLERANCE_ANGLE)
+                {
+                    motorp->status.isZeroed = 0;
+                }
             }
             break;
         case Speed:
@@ -239,9 +243,9 @@ void Motor_Func(MotorPtr motorp) // 控制逻辑容易出错!
         }
     }
     Motor_Request_Data(motorp, SpeedReal);
-    Motor_Request_Data(motorp, SpeedSet);
+    //    Motor_Request_Data(motorp, SpeedSet);
     Motor_Request_Data(motorp, PositionReal);
-    Motor_Request_Data(motorp, PositionSet);
+    //  Motor_Request_Data(motorp, PositionSet);
     Motor_Request_Data(motorp, Mode);
 }
 /*--------------------------------工具函数------------------------------------*/
