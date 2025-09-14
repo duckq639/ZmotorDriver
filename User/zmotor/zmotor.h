@@ -7,16 +7,15 @@
 #define SPEED_TOLERANCE_RPM 20.f
 #define CURRENT_LIMIT 0.f
 #define HOME_POSITION 0 // 单位"度"
-#define MOTOR_NUMBER 1
-#define MAX_MOTOR_ID 8
+#define ZMOTOR_NUMBER 1
+#define MAX_ZMOTOR_ID 8
 //=============================================
 
 //=============================================
 //               包含头文件
-#include "stdbool.h"
-#include "mathFunc.h"
 #include "stdint.h"
-#include "cancommand.h"
+#include "mathFunc.h"
+#include "zcancommand.h"
 //=============================================
 
 //=============================================
@@ -28,7 +27,7 @@ typedef struct
     float speed;
     float angle;
     float round;
-} MotorValue; /*电机运行参数*/
+} ZMotorValue; /*电机运行参数*/
 
 typedef struct
 {
@@ -39,7 +38,7 @@ typedef struct
     uint32_t ID;
     uint16_t currentLimit;
 
-} MotorParam; // 电机静态参数,包含CAN参数
+} ZMotorParam; // 电机静态参数,包含CAN参数
 
 typedef struct
 {
@@ -49,7 +48,7 @@ typedef struct
     volatile bool isStuck;    // 是否堵转
     volatile bool findZero;   // 是否将当前位置置为0：
     volatile bool SavePositionFlag;
-} MotorStatus; // 电机执行情况
+} ZMotorStatus; // 电机执行情况
 /*------------------------枚举类------------------------------------*/
 
 typedef enum
@@ -64,7 +63,7 @@ typedef enum
     CurrentReal = 0x53,
     SpeedReal = 0x5D,
     PositionReal = 0x5F,
-} MotorTxCMD; // 电机发送命令,接收(请求)命令为"发送命令-1"
+} ZMotorTxCMD; // 电机发送命令,接收(请求)命令为"发送命令-1"
 
 typedef enum //  电机模式，用于指定电机的操作模式
 {
@@ -83,7 +82,7 @@ typedef enum //  电机模式，用于指定电机的操作模式
     Brake,
     PVT_Mode,
     /*后面的看不懂先写到这里*/
-} MotorMode;
+} ZMotorMode;
 
 typedef enum
 {
@@ -95,7 +94,7 @@ typedef enum
     OverSpeed,
     UnkownCommand = 14,
     /*同理看不懂的先不写了*/
-} MotorError;
+} ZMotorError;
 /*---------------------------整体封装------------------------------------*/
 typedef struct
 {
@@ -103,45 +102,44 @@ typedef struct
     volatile bool begin;
     volatile bool brake;
 
-    MotorParam param;                                // 电机静态参数
-    MotorValue valueSetLast, valueSetNow, valueReal; // 电机运行参数
-    MotorError motorErr;                             // 电机错误
-    MotorStatus status;                              // 电机执行状态
-    MotorMode modeset, moderead;                     // 当前电机模式
-} Motor, *MotorPtr;
+    ZMotorParam param;                                // 电机静态参数
+    ZMotorValue valueSetLast, valueSetNow, valueReal; // 电机运行参数
+    ZMotorError motorErr;                             // 电机错误
+    ZMotorStatus status;                              // 电机执行状态
+    ZMotorMode modeset, moderead;                     // 当前电机模式
+} ZMotor, *ZMotorPtr;
 //=============================================
 
 //               类声明
 //=============================================
 // 电机初始化时要求输入ID
 // 电机ID以结构体param中的ID为准
-// ID表中填写电机ID(如"Motor_ID_List[1]")即可对ID为1的电机操作
+// ID表中填写电机ID(如"ZMotor_ID_List[1]")即可对ID为1的电机操作
 // 代码太史了,目前电机操作的传入指针依然是电机结构体而不是电机ID
-extern Motor zmotor[MOTOR_NUMBER];
-extern MotorPtr zmotorp;
-extern uint8_t Motor_ID_List[MAX_MOTOR_ID + 1];
+extern ZMotor zmotor[ZMOTOR_NUMBER];
+extern ZMotorPtr zmotorp;
+extern uint8_t ZMotor_ID_List[MAX_ZMOTOR_ID + 1];
+
 //=============================================
 //               函数声明
 /*-----------------初始化函数--------------------------------*/
 
-int motor_init(MotorPtr motorp, uint32_t id);
+int motor_init(ZMotorPtr motorp, uint32_t id);
 /*-----------------命令运行函数--------------------------------*/
-int Motor_Set_Mode(MotorPtr motorp, MotorMode mode); // 命令封装
-int Motor_Set_Value(MotorPtr motorp, MotorTxCMD cmd, float value);
-int Motor_Request_Data(MotorPtr motorp, MotorTxCMD cmd);
-int Motor_Read_Data(MotorPtr motorp, CAN_CMD *cancmd);
-int Motor_Update();
-int Motor_Save_Position(MotorPtr motorp);
-void Motor_Err_Handler(MotorPtr motorp);
+int ZMotor_Set_Mode(ZMotorPtr motorp, ZMotorMode mode); // 命令封装
+int ZMotor_Set_Value(ZMotorPtr motorp, ZMotorTxCMD cmd, float value);
+int ZMotor_Request_Data(ZMotorPtr motorp, ZMotorTxCMD cmd);
+int ZMotor_Update(CAN_RxHeaderTypeDef *hdr, uint8_t *data);
+void ZMotor_Err_Handler(ZMotorPtr motorp);
 /*-----------------------工具函数-------------------------*/
-static inline bool isMotor_On_Setposition(MotorPtr motorp)
+static inline bool isZMotor_On_Setposition(ZMotorPtr motorp)
 {
     if (ABS(motorp->valueSetNow.angle - motorp->valueReal.angle) > POSITION_TOLERANCE_ANGLE)
         return false;
     else
         return true;
 }
-static inline bool isMotor_On_Setspeed(MotorPtr motorp)
+static inline bool isZMotor_On_Setspeed(ZMotorPtr motorp)
 {
     if (ABS(motorp->valueSetNow.speed - motorp->valueSetLast.speed) > SPEED_TOLERANCE_RPM)
         return false;
@@ -149,7 +147,7 @@ static inline bool isMotor_On_Setspeed(MotorPtr motorp)
         return true;
 }
 /*-----------------集和封装函数--------------------------------*/
-void Motor_Func(MotorPtr motorp);
+void ZMotor_Func(ZMotorPtr motorp);
 /*-----------------工具函数--------------------------------*/
 
 //=============================================

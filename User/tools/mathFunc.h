@@ -1,6 +1,4 @@
-#ifndef MATHFUNC_H
-#define MATHFUNC_H
-#endif // !MATHFUNC_H
+#pragma once
 
 #define PEAK(x, max)           \
     do                         \

@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "zmotor.h"
-#include "cancommand.h"
+#include "zcancommand.h"
 #include "canqueue.h"
 /* USER CODE END Includes */
 
@@ -99,7 +99,6 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   motor_init(zmotorp, 1);
-  CAN_Queue_System_Init(); // CAN队列初始化
 
   /* USER CODE END 2 */
 
@@ -176,7 +175,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   {
     if (hcan->Instance == CAN1)
     {
-      CAN_Recieve_Cmd(&CAN_RxHeader, data);
+      ZMotor_Update(&CAN_RxHeader, data);
     }
   }
 }
@@ -196,15 +195,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   static int ticktime;
   if (htim->Instance == TIM3)
   {
-    if (ticktime == 10)
-    {
-      Motor_Func(zmotorp);
-      // LED_Pop();
-      ticktime = 0;
-    }
-    ticktime++;
-    CAN_Send_Cmd();
-    osDelay(10);
   }
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM8)
