@@ -96,7 +96,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN1_Init();
-  MX_TIM3_Init();
+  MX_CAN2_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
   motor_init(zmotorp, 1);
 
@@ -182,7 +183,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 /**
  * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM8 interrupt took place, inside
+ * @note   This function is called  when TIM5 interrupt took place, inside
  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
  * a global variable "uwTick" used as application time base.
  * @param  htim : TIM handle
@@ -192,11 +193,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
   static int ticktime;
-  if (htim->Instance == TIM3)
+  if (htim->Instance == TIM8)
   {
+    if (ticktime == 10)
+    {
+      ZMotor_Func(zmotorp);
+      ticktime = 0;
+    }
+    ticktime++;
+    ZCAN_Send_Cmd();
   }
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM8)
+  if (htim->Instance == TIM5)
   {
     HAL_IncTick();
   }
