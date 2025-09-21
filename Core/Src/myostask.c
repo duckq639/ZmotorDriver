@@ -15,7 +15,7 @@ void Send_Command(void *argument)
     {
         if (ticktime == 10)
         {
-            Motor_Func(zmotorp);
+            ZMotor_Func(zmotorp);
             ticktime = 0;
         }
         ticktime++;

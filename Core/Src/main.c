@@ -169,13 +169,12 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-  CAN_RxHeaderTypeDef CAN_RxHeader;
-  uint8_t data[8];
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CAN_RxHeader, data) == HAL_OK)
+  CAN_RxFrame frame;
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.CAN_RxHeader, frame.Data) == HAL_OK)
   {
     if (hcan->Instance == CAN1)
     {
-      ZMotor_Update(&CAN_RxHeader, data);
+      ZMotor_Update(&frame.CAN_RxHeader, frame.Data);
     }
   }
 }
