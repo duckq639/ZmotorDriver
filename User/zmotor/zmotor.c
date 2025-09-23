@@ -93,6 +93,7 @@ int ZMotor_Set_PVT_Mode(ZMotorPtr motorp)
     cancmd.command = a_trp_down;
     cancmd.data = motorp->pvtvalueSetNow.deltatime;
     ZCAN_Write_Cmd(&cancmd);
+    return 0;
 }
 int ZMotor_Set_Value(ZMotorPtr motorp, ZMotorTxCMD cmd, float value)
 {
@@ -220,7 +221,7 @@ void ZMotor_Func(ZMotorPtr motorp) // 控制逻辑容易出错!
             ZMotor_Set_Mode(motorp, motorp->modeset);
             if (motorp->modeset == PVT_Mode)
             {
-                ZMotor_Set_PVT_Mode(motorp, motorp->pvtvalueSetNow.deltatime);
+                ZMotor_Set_PVT_Mode(motorp);
             }
         }
         else
