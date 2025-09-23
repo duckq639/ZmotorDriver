@@ -20,43 +20,12 @@
 
 //=============================================
 //               类定义
-/*------------------------结构体类-------------------------------*/
-typedef struct
-{
-    float current;
-    float speed;
-    float angle;
-    float round;
-} ZMotorValue; /*电机运行参数*/
-
-typedef struct
-{
-    float pvspeed;
-    float pvangle;
-    float deltatime;
-} ZMotorPVT_Value;
-
-typedef struct
-{
-    uint16_t pulsePerRound; // 电机一圈脉冲数
-    float reductionRatio;   // 电机减速比
-    float gearRatio;        // 机构减速比
-    float ratio;            // 电机减速比和机构减速比之积
-    uint32_t ID;
-    uint16_t currentLimit;
-
-} ZMotorParam; // 电机静态参数,包含CAN参数
-
-typedef struct
-{
-    volatile bool isArrived;  // 是否到位
-    volatile bool isZeroed;   // 寻零完成
-    volatile bool isOvertime; // 是否超时
-    volatile bool isStuck;    // 是否堵转
-    volatile bool findZero;   // 是否将当前位置置为0：
-    volatile bool SavePositionFlag;
-} ZMotorStatus; // 电机执行情况
 /*------------------------枚举类------------------------------------*/
+typedef enum
+{
+    PVT_ANGLE,
+    PVT_SPEED,
+} PVT_Mode;
 
 typedef enum
 {
@@ -89,7 +58,6 @@ typedef enum //  电机模式，用于指定电机的操作模式
     EraseSetting,
     ClearErr,
     Brake,
-    PVT_Mode,
     /*后面的看不懂先写到这里*/
 } ZMotorMode;
 
@@ -104,6 +72,45 @@ typedef enum
     UnkownCommand = 14,
     /*同理看不懂的先不写了*/
 } ZMotorError;
+/*------------------------结构体类-------------------------------*/
+typedef struct
+{
+    float current;
+    float speed;
+    float angle;
+    float round;
+} ZMotorValue; /*电机运行参数*/
+
+typedef struct
+{
+    float pvspeed;
+    float pvangle;
+    float deltatime;
+    bool PVTModeFlag; // PVT 模式使能标志
+    bool firstFlag;   // 第一次运行标志
+    PVT_Mode pvt_Mode;
+} ZMotorPVT_Param;
+
+typedef struct
+{
+    uint16_t pulsePerRound; // 电机一圈脉冲数
+    float reductionRatio;   // 电机减速比
+    float gearRatio;        // 机构减速比
+    float ratio;            // 电机减速比和机构减速比之积
+    uint32_t ID;
+    uint16_t currentLimit;
+
+} ZMotorParam; // 电机静态参数,包含CAN参数
+
+typedef struct
+{
+    volatile bool isArrived;  // 是否到位
+    volatile bool isZeroed;   // 寻零完成
+    volatile bool isOvertime; // 是否超时
+    volatile bool isStuck;    // 是否堵转
+    volatile bool findZero;   // 是否将当前位置置为0：
+    volatile bool SavePositionFlag;
+} ZMotorStatus; // 电机执行情况
 /*---------------------------整体封装------------------------------------*/
 typedef struct
 {
@@ -112,7 +119,7 @@ typedef struct
 
     ZMotorParam param;                                // 电机静态参数
     ZMotorValue valueSetLast, valueSetNow, valueReal; // 电机运行参数
-    ZMotorPVT_Value pvtvalueSetNow;                   // 电机pvt模式参数
+    ZMotorPVT_Param pvtvalueParam;                    // 电机pvt模式参数
     ZMotorError motorErr;                             // 电机错误
     ZMotorStatus status;                              // 电机执行状态
     ZMotorMode modeset, moderead;                     // 当前电机模式

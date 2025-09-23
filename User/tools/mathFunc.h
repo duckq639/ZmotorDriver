@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MATHFUNC_H
+#define MATHFUNC_H
 
 #define PEAK(x, max)           \
     do                         \
@@ -10,3 +11,5 @@
     } while (0)
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
+
+#endif
