@@ -3,6 +3,7 @@
 /*============================ 宏定义区 ============================*/
 #define ZMOTOR_STD_DATASIZE 5 // 数据段DLC
 #define ZMOTOR_CMD_DATASIZE 1 // 请求段DLC,只包含命令
+#define ZMOTOR_PVT_DATASIZE 8
 #define Z_CAN_CHANNEL hcan1
 /*============================ 头文件包含区 ============================*/
 #include "canqueue.h"
@@ -11,6 +12,7 @@ typedef struct
 {
     uint8_t command;
     float data;
+    float data2;
     uint32_t motorID;
     uint8_t datalenth;
 } ZCAN_CMD;

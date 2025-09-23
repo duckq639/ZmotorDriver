@@ -31,6 +31,13 @@ typedef struct
 
 typedef struct
 {
+    float pvspeed;
+    float pvangle;
+    float deltatime;
+} ZMotorPVT_Value;
+
+typedef struct
+{
     uint16_t pulsePerRound; // 电机一圈脉冲数
     float reductionRatio;   // 电机减速比
     float gearRatio;        // 机构减速比
@@ -63,6 +70,8 @@ typedef enum
     CurrentReal = 0x53,
     SpeedReal = 0x5D,
     PositionReal = 0x5F,
+    a_trp_up = 0x29,
+    a_trp_down = 0x2B,
 } ZMotorTxCMD; // 电机发送命令,接收(请求)命令为"发送命令-1"
 
 typedef enum //  电机模式，用于指定电机的操作模式
@@ -98,12 +107,12 @@ typedef enum
 /*---------------------------整体封装------------------------------------*/
 typedef struct
 {
-    volatile bool enable;
     volatile bool begin;
     volatile bool brake;
 
     ZMotorParam param;                                // 电机静态参数
     ZMotorValue valueSetLast, valueSetNow, valueReal; // 电机运行参数
+    ZMotorPVT_Value pvtvalueSetNow;                   // 电机pvt模式参数
     ZMotorError motorErr;                             // 电机错误
     ZMotorStatus status;                              // 电机执行状态
     ZMotorMode modeset, moderead;                     // 当前电机模式
@@ -124,10 +133,12 @@ extern uint8_t ZMotor_ID_List[MAX_ZMOTOR_ID + 1];
 //               函数声明
 /*-----------------初始化函数--------------------------------*/
 
-int motor_init(ZMotorPtr motorp, uint32_t id);
+int ZMotor_init(ZMotorPtr motorp, uint32_t id);
 /*-----------------命令运行函数--------------------------------*/
 int ZMotor_Set_Mode(ZMotorPtr motorp, ZMotorMode mode); // 命令封装
+int ZMotor_Set_PVT_Mode(ZMotorPtr motorp);
 int ZMotor_Set_Value(ZMotorPtr motorp, ZMotorTxCMD cmd, float value);
+int ZMotor_Set_PVT_Value(ZMotorPtr motorp); // 时间间隔只能在模式设定时设置,不支持单独更改
 int ZMotor_Request_Data(ZMotorPtr motorp, ZMotorTxCMD cmd);
 int ZMotor_Update(CAN_RxHeaderTypeDef *hdr, uint8_t *data);
 void ZMotor_Err_Handler(ZMotorPtr motorp);

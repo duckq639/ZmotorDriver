@@ -10,20 +10,18 @@
 ZMotor zmotor[ZMOTOR_NUMBER];
 ZMotorPtr zmotorp = zmotor;
 uint8_t ZMotor_ID_List[MAX_ZMOTOR_ID + 1] = {0};
+float a_trip_save[2] = {0};
 /*=====================================
  *             函数实现区
 \*=====================================*/
 
 /*-----------------初始化函数--------------------------------*/
-int motor_init(ZMotorPtr motorp, uint32_t id)
+int ZMotor_init(ZMotorPtr motorp, uint32_t id)
 {
     if (id == 0 || id > MAX_ZMOTOR_ID)
     {
         return 1;
     }
-    motorp->enable = 0;
-    motorp->begin = 1;
-    motorp->brake = 0;
 
     // 初始化电机静态参数
     motorp->param.pulsePerRound = 0;
@@ -38,6 +36,10 @@ int motor_init(ZMotorPtr motorp, uint32_t id)
     motorp->valueSetNow.speed = 0.0f;
     motorp->valueSetNow.angle = 0.0f;
     motorp->valueSetNow.round = 0.0f;
+
+    motorp->pvtvalueSetNow.deltatime = 0.01f;
+    motorp->pvtvalueSetNow.pvspeed = 0.f;
+    motorp->pvtvalueSetNow.pvangle = 0.f;
 
     motorp->valueReal.angle = 0.0f;
     motorp->valueReal.round = 0.0f;
@@ -62,6 +64,10 @@ int motor_init(ZMotorPtr motorp, uint32_t id)
     // 发送CAN报文(丐版)
     ZMotor_Set_Mode(motorp, motorp->modeset);
     ZMotor_Set_Value(motorp, PositionReal, 0.f);
+
+    motorp->begin = 1;
+    motorp->brake = 0;
+
     return 0;
 }
 
@@ -70,10 +76,23 @@ int ZMotor_Set_Mode(ZMotorPtr motorp, ZMotorMode mode)
 {
     ZCAN_CMD cancmd;
     cancmd.datalenth = ZMOTOR_STD_DATASIZE;
+    cancmd.motorID = motorp->param.ID;
     cancmd.command = Mode;
     cancmd.data = (float)mode;
-    cancmd.motorID = motorp->param.ID;
+
     return ZCAN_Write_Cmd(&cancmd); // 电机模式设置
+}
+int ZMotor_Set_PVT_Mode(ZMotorPtr motorp)
+{
+    ZCAN_CMD cancmd;
+    cancmd.datalenth = ZMOTOR_STD_DATASIZE;
+    cancmd.motorID = motorp->param.ID;
+    cancmd.command = a_trp_up;
+    cancmd.data = 0.f;
+    ZCAN_Write_Cmd(&cancmd);
+    cancmd.command = a_trp_down;
+    cancmd.data = motorp->pvtvalueSetNow.deltatime;
+    ZCAN_Write_Cmd(&cancmd);
 }
 int ZMotor_Set_Value(ZMotorPtr motorp, ZMotorTxCMD cmd, float value)
 {
@@ -99,6 +118,16 @@ int ZMotor_Set_Value(ZMotorPtr motorp, ZMotorTxCMD cmd, float value)
         return 1;
         break;
     }
+    return ZCAN_Write_Cmd(&cancmd);
+}
+int ZMotor_Set_PVT_Value(ZMotorPtr motorp)
+{
+    ZCAN_CMD cancmd;
+    cancmd.datalenth = ZMOTOR_PVT_DATASIZE;
+    cancmd.command = 0;
+    cancmd.motorID = motorp->param.ID;
+    cancmd.data = motorp->pvtvalueSetNow.pvspeed / 60.f * motorp->param.ratio;
+    cancmd.data2 = motorp->pvtvalueSetNow.pvangle / 360.f * motorp->param.ratio;
     return ZCAN_Write_Cmd(&cancmd);
 }
 int ZMotor_Request_Data(ZMotorPtr motorp, ZMotorTxCMD cmd)
@@ -169,6 +198,7 @@ int ZMotor_Save_Position(ZMotorPtr motorp)
 }
 void ZMotor_Err_Handler(ZMotorPtr motorp)
 {
+    motorp->begin = false;
 }
 /*--------------------------------集成封装函数------------------------------------*/
 void ZMotor_Func(ZMotorPtr motorp) // 控制逻辑容易出错!
@@ -178,18 +208,25 @@ void ZMotor_Func(ZMotorPtr motorp) // 控制逻辑容易出错!
         ZMotor_Err_Handler(motorp);
         return;
     }
-    if (motorp->enable == 0)
+    if (!motorp->begin)
+    {
+
+        return; // 未启用时不进入控制逻辑
+    }
+    if (motorp->modeset != motorp->moderead)
     {
         if (motorp->modeset != Disable)
         {
             ZMotor_Set_Mode(motorp, motorp->modeset);
-            motorp->enable = 1;
+            if (motorp->modeset == PVT_Mode)
+            {
+                ZMotor_Set_PVT_Mode(motorp, motorp->pvtvalueSetNow.deltatime);
+            }
         }
-        return; // 未启用时不进入控制逻辑
-    }
-    else if (motorp->modeset != motorp->moderead)
-    {
-        ZMotor_Set_Mode(motorp, motorp->modeset);
+        else
+        {
+            return;
+        }
     }
     else
     {
@@ -197,7 +234,9 @@ void ZMotor_Func(ZMotorPtr motorp) // 控制逻辑容易出错!
         {
         case Disable:
             // ZMotor_Set_Mode(motorp, motorp->moderead);
-            motorp->enable = 0;
+            break;
+        case Current:
+            ZMotor_Set_Value(motorp, CurrentSet, motorp->valueSetNow.current);
             break;
         case Position:
             if (!isZMotor_On_Setposition(motorp) && ABS(motorp->valueSetNow.angle - motorp->valueSetLast.angle) > POSITION_TOLERANCE_ANGLE) // 电机行止逻辑注意
@@ -230,6 +269,9 @@ void ZMotor_Func(ZMotorPtr motorp) // 控制逻辑容易出错!
             {
                 ZMotor_Set_Value(motorp, SpeedSet, motorp->valueSetNow.speed);
             }
+            break;
+        case PVT_Mode:
+            ZMotor_Set_PVT_Value(motorp);
             break;
         default:
             motorp->motorErr = UnkownCommand;

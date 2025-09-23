@@ -99,7 +99,7 @@ int main(void)
   MX_CAN2_Init();
   MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
-  motor_init(zmotorp, 1);
+  ZMotor_init(zmotorp, 1);
 
   /* USER CODE END 2 */
 

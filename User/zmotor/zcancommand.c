@@ -15,9 +15,17 @@ int ZCAN_Write_Cmd(ZCAN_CMD *cancmd)
     CAN_TxFrame frame = {0};
     frame.CAN_TxHeader.DLC = cancmd->datalenth;
     frame.CAN_TxHeader.StdId = cancmd->motorID;
-    frame.Data[0] = cancmd->command;
-    if (frame.CAN_TxHeader.DLC == 5)
-        memcpy(frame.Data + 1, &cancmd->data, sizeof(float)); // 命令传输中间层
+    if (frame.CAN_TxHeader.DLC = cancmd->datalenth == ZMOTOR_PVT_DATASIZE)
+    {
+        memcpy(frame.Data, &cancmd->data, sizeof(float));
+        memcpy(frame.Data + 4, &cancmd->data2, sizeof(float));
+    }
+    else
+    {
+        frame.Data[0] = cancmd->command;
+        if (frame.CAN_TxHeader.DLC == 5)
+            memcpy(frame.Data + 1, &cancmd->data, sizeof(float)); // 命令传输中间层
+    }
     CAN_Queue_Push(&CAN1_TxQueue, &frame);
     return 0;
 }
